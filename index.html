@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RetroAmp</title>
+  <link rel="icon" href="build/icon.png">
+  <link rel="stylesheet" href="style.css">
+  <script src="skins.js"></script>
+</head>
+<body>
+  <div id="app">
+    <!-- Pilha de amplificador da skin Amplificador (montada em player.js; os cones pulsam com a música) -->
+    <aside class="amp-cab" aria-hidden="true"></aside>
+    <div class="col" id="col-1">
+    <!-- Janela principal -->
+    <section class="win" id="main-win">
+      <header class="titlebar">
+        <span class="grip"></span><span class="title">RETROAMP</span><span class="grip"></span>
+        <button class="win-btn layout-btn" id="btn-layout" title="Alternar entre 1 e 2 colunas (arraste as seções pelo título para reorganizar)" aria-label="Colunas"><svg viewBox="0 0 8 8"><path d="M0 0h3.5v8H0zM4.5 0H8v8H4.5z"/></svg></button>
+        <button class="win-btn skin-btn" id="btn-skin" title="Skins (K troca)" aria-label="Skins" aria-haspopup="menu"><svg viewBox="0 0 8 8"><path d="M4 0a4 4 0 100 8V7a3 3 0 010-6z"/><path d="M4 1.5a2.5 2.5 0 010 5z"/></svg></button>
+        <span class="win-buttons">
+          <button class="win-btn" id="win-min" title="Minimizar" aria-label="Minimizar"><svg viewBox="0 0 8 8"><path d="M1 6h6v1.5H1z"/></svg></button>
+          <button class="win-btn" id="win-close" title="Fechar" aria-label="Fechar"><svg viewBox="0 0 8 8"><path d="M1.5.5L4 3 6.5.5l1 1L5 4l2.5 2.5-1 1L4 5 1.5 7.5l-1-1L3 4 .5 1.5z"/></svg></button>
+        </span>
+      </header>
+      <div class="main-body">
+        <div class="display">
+          <div class="display-left">
+            <div class="status-row">
+              <span id="play-state" class="play-state stopped" aria-label="Parado"></span>
+              <span id="time" class="time" title="Clique para alternar tempo decorrido/restante">00:00</span>
+            </div>
+            <canvas id="vis" title="Clique para alternar o visualizador"></canvas>
+          </div>
+          <div class="display-right">
+            <div class="marquee" id="marquee"></div>
+            <div class="info-row">
+              <span class="info"><b id="kbps">---</b> kbps</span>
+              <span class="info"><b id="khz">--</b> kHz</span>
+              <span class="badge" id="mono">MONO</span>
+              <span class="badge" id="stereo">STEREO</span>
+            </div>
+            <div class="sliders-row">
+              <label class="mini-slider" title="Volume"><span>VOL</span><input type="range" id="volume" min="0" max="100" value="80"></label>
+              <label class="mini-slider" title="Balanço (duplo clique centraliza)"><span>BAL</span><input type="range" id="balance" class="nofill" min="-100" max="100" value="0"></label>
+            </div>
+            <div class="toggles-row">
+              <button class="btn toggle" id="btn-eq" title="Mostrar equalizador">EQ</button>
+              <button class="btn toggle" id="btn-pl" title="Mostrar playlist">PL</button>
+              <button class="btn toggle desktop-only" id="btn-net" title="Buscar e baixar música liberada">NET</button>
+              <button class="btn toggle" id="btn-ly" title="Mostrar a letra da música">LY</button>
+              <button class="btn toggle" id="btn-cv" title="Mostrar a capa do disco">CV</button>
+            </div>
+          </div>
+        </div>
+
+        <input type="range" id="seek" class="seek" min="0" max="1000" value="0" disabled aria-label="Posição">
+
+        <div class="controls">
+          <div class="transport">
+            <button class="btn tbtn" id="btn-prev" title="Anterior (Z)"><svg viewBox="0 0 16 16"><path d="M3 3h2v10H3zM13 3v10L6 8z"/></svg></button>
+            <button class="btn tbtn" id="btn-play" title="Tocar (X)"><svg viewBox="0 0 16 16"><path d="M4 2.5v11L13 8z"/></svg></button>
+            <button class="btn tbtn" id="btn-pause" title="Pausar (C)"><svg viewBox="0 0 16 16"><path d="M4 3h3v10H4zM9 3h3v10H9z"/></svg></button>
+            <button class="btn tbtn" id="btn-stop" title="Parar (V)"><svg viewBox="0 0 16 16"><path d="M3.5 3.5h9v9h-9z"/></svg></button>
+            <button class="btn tbtn" id="btn-next" title="Próxima (B)"><svg viewBox="0 0 16 16"><path d="M11 3h2v10h-2zM3 3v10l7-5z"/></svg></button>
+            <button class="btn tbtn eject" id="btn-open" title="Abrir arquivos (L)"><svg viewBox="0 0 16 16"><path d="M8 3l5 6H3zM3 11h10v2H3z"/></svg></button>
+          </div>
+          <div class="modes">
+            <button class="btn toggle" id="btn-shuffle" title="Aleatório (S)">SHUFFLE</button>
+            <button class="btn toggle" id="btn-repeat" title="Repetir (R)">REPEAT</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Equalizador -->
+    <section class="win" id="eq-win">
+      <header class="titlebar"><span class="grip"></span><span class="title">EQUALIZADOR</span><span class="grip"></span></header>
+      <div class="eq-body">
+        <div class="eq-top">
+          <button class="btn toggle" id="eq-on">ON</button>
+          <canvas id="eq-curve"></canvas>
+          <select id="eq-preset" class="btn" title="Presets"></select>
+          <button class="btn" id="eq-reset" title="Zerar todas as bandas">RESET</button>
+        </div>
+        <div class="eq-bands" id="eq-bands"></div>
+      </div>
+    </section>
+
+    <!-- Playlist -->
+    <section class="win" id="pl-win">
+      <header class="titlebar"><span class="grip"></span><span class="title">PLAYLIST</span><span class="grip"></span></header>
+      <div class="pl-body">
+        <input type="search" id="pl-search" class="pl-search" placeholder="Buscar na playlist…" autocomplete="off">
+        <ul id="pl-list" class="pl-list" tabindex="0"></ul>
+        <div class="pl-empty" id="pl-empty">Arraste músicas ou pastas para cá<br>ou use <b>+ ARQ</b> / <b>+ PASTA</b></div>
+        <div class="pl-footer">
+          <div class="pl-buttons">
+            <button class="btn" id="pl-add" title="Adicionar arquivos">+ ARQ</button>
+            <button class="btn" id="pl-add-dir" title="Adicionar uma pasta inteira">+ PASTA</button>
+            <button class="btn" id="pl-remove" title="Remover selecionadas (Del)">REM</button>
+            <button class="btn" id="pl-sort" title="Ordenar por título">ORD</button>
+            <button class="btn" id="pl-tag" title="Editar as tags das selecionadas (T)">TAG</button>
+            <button class="btn" id="pl-clear" title="Limpar playlist">LIMPAR</button>
+          </div>
+          <span class="pl-total" id="pl-total">0 faixas</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Letra da música -->
+    <section class="win" id="ly-win" hidden>
+      <header class="titlebar"><span class="grip"></span><span class="title">LETRA</span><span class="grip"></span></header>
+      <div class="ly-body">
+        <div class="ly-top">
+          <span class="ly-status" id="ly-status"></span>
+          <button class="btn" id="ly-earlier" type="button" title="A letra está atrasada: adiantar 0,5 s">−0,5s</button>
+          <span class="ly-offset" id="ly-offset" title="Ajuste de sincronia desta faixa">±0,0s</span>
+          <button class="btn" id="ly-later" type="button" title="A letra está adiantada: atrasar 0,5 s">+0,5s</button>
+          <button class="btn" id="ly-other" type="button" title="Letra errada? Tentar outro resultado do LRCLIB">OUTRA</button>
+          <button class="btn" id="ly-save" type="button" title="Gravar esta letra dentro do MP3 (com o ajuste de sincronia), para não depender da internet. No navegador, baixa uma cópia." hidden>GRAVAR</button>
+        </div>
+        <div class="ly-lines" id="ly-lines"></div>
+      </div>
+    </section>
+
+    <!-- Editor de tags ID3 -->
+    <section class="win" id="tag-win" hidden>
+      <header class="titlebar"><span class="grip"></span><span class="title">TAGS</span><span class="grip"></span></header>
+      <div class="tag-body">
+        <div class="tag-top">
+          <span class="tag-status" id="tag-status"></span>
+          <button class="btn" id="tag-from-name" type="button" title="Preencher título, artista e faixa a partir do nome do arquivo (e o álbum pela pasta)">DO NOME</button>
+          <button class="btn" id="tag-lookup" type="button" title="Procurar álbum, ano, faixa e gênero no MusicBrainz pelo título e artista">BUSCAR</button>
+        </div>
+        <select class="btn tag-results" id="tag-results" title="Resultados do MusicBrainz" hidden></select>
+        <form class="tag-form" id="tag-form" autocomplete="off">
+          <label for="tag-title">TÍTULO</label>
+          <input class="field wide" id="tag-title" name="title" spellcheck="false">
+          <label for="tag-artist">ARTISTA</label>
+          <input class="field wide" id="tag-artist" name="artist" spellcheck="false">
+          <label for="tag-album">ÁLBUM</label>
+          <input class="field wide" id="tag-album" name="album" spellcheck="false">
+          <label for="tag-year">ANO</label>
+          <div class="tag-row">
+            <input class="field" id="tag-year" name="year" maxlength="10" inputmode="numeric">
+            <label for="tag-track">FAIXA</label>
+            <input class="field" id="tag-track" name="track" maxlength="7">
+            <label for="tag-genre">GÊNERO</label>
+            <input class="field" id="tag-genre" name="genre" list="tag-genres" spellcheck="false">
+          </div>
+          <span class="tag-label">CAPA</span>
+          <div class="tag-cover">
+            <div class="tag-thumb"><img id="tag-cover-img" alt="Capa" hidden><span id="tag-cover-empty">SEM CAPA</span></div>
+            <div class="tag-cover-buttons">
+              <button class="btn" id="tag-cover-dl" type="button" title="Baixar a capa do Cover Art Archive (MusicBrainz) pelo título/álbum e artista">⇩ BAIXAR</button>
+              <button class="btn" id="tag-cover-file" type="button" title="Usar uma imagem JPG ou PNG do computador">ARQUIVO</button>
+              <button class="btn" id="tag-cover-remove" type="button" title="Tirar a capa do arquivo">TIRAR</button>
+              <input type="file" id="tag-cover-input" accept="image/jpeg,image/png" hidden>
+            </div>
+          </div>
+          <div class="tag-actions">
+            <button class="btn" type="submit" title="Gravar as tags no arquivo (no navegador, baixa uma cópia)">SALVAR</button>
+            <button class="btn" id="tag-close" type="button">FECHAR</button>
+          </div>
+        </form>
+        <datalist id="tag-genres">
+          <option>Rock</option><option>Pop</option><option>MPB</option><option>Samba</option><option>Bossa Nova</option>
+          <option>Forró</option><option>Sertanejo</option><option>Jazz</option><option>Blues</option><option>Clássica</option>
+          <option>Eletrônica</option><option>Hip-Hop</option><option>Reggae</option><option>Metal</option><option>Punk</option>
+          <option>Folk</option><option>Country</option><option>Soul</option><option>Funk</option><option>Ao vivo</option>
+        </datalist>
+      </div>
+    </section>
+
+    <!-- Capa do disco -->
+    <section class="win" id="cv-win" hidden>
+      <header class="titlebar"><span class="grip"></span><span class="title">CAPA</span><span class="grip"></span></header>
+      <div class="cv-body">
+        <div class="cv-frame">
+          <div class="cv-square" id="cv-frame">
+            <img id="cv-img" alt="Capa do disco" hidden>
+            <span class="cv-empty" id="cv-empty">SEM CAPA</span>
+          </div>
+        </div>
+        <div class="cv-bar">
+          <span class="cv-status" id="cv-status"></span>
+          <button class="btn" id="cv-search" type="button" title="Procurar a capa no Cover Art Archive (MusicBrainz)">⇩ BAIXAR</button>
+          <button class="btn" id="cv-other" type="button" title="Capa errada? Tentar outro disco" hidden>OUTRA</button>
+          <button class="btn" id="cv-save" type="button" title="Gravar esta capa no MP3 (no navegador, baixa uma cópia)" hidden>GRAVAR</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Busca de música liberada (só no app desktop) -->
+    <section class="win desktop-only" id="net-win" hidden>
+      <header class="titlebar"><span class="grip"></span><span class="title">BUSCAR MÚSICA</span><span class="grip"></span></header>
+      <div class="net-body">
+        <form class="net-form" id="net-form">
+          <input class="field" id="net-song" placeholder="Música" autocomplete="off" spellcheck="false">
+          <input class="field" id="net-band" placeholder="Banda / artista" autocomplete="off" spellcheck="false">
+          <button class="btn" type="submit">BUSCAR</button>
+        </form>
+        <div class="net-sources">
+          <button class="btn toggle" id="src-archive" type="button" title="Internet Archive: shows ao vivo liberados (Live Music Archive), netlabels, discos antigos e Creative Commons">ARCHIVE.ORG</button>
+          <button class="btn toggle" id="src-jamendo" type="button" title="Jamendo: música independente com licença Creative Commons">JAMENDO</button>
+          <span class="net-status" id="net-status">Só música liberada para download.</span>
+          <button class="btn" id="net-all" type="button" title="Colocar todos os resultados na fila de downloads">⇩ TODOS</button>
+        </div>
+        <ul class="net-results" id="net-results"></ul>
+        <div class="net-queue" id="net-queue" hidden>
+          <span class="net-queue-text" id="net-queue-text"></span>
+          <div class="net-queue-bar"><div class="net-queue-fill" id="net-queue-fill"></div></div>
+          <button class="btn" id="net-queue-cancel" type="button" title="Cancelar o download atual e esvaziar a fila">CANCELAR</button>
+        </div>
+        <div class="net-footer">
+          <span class="net-dir">PASTA <b id="net-dir"></b></span>
+          <button class="btn" id="net-dir-change" type="button" title="Escolher a pasta onde os downloads são salvos">MUDAR</button>
+          <button class="btn" id="net-dir-open" type="button" title="Abrir a pasta no gerenciador de arquivos">ABRIR</button>
+        </div>
+        <div class="net-key">
+          <label for="net-jamendo-key">CHAVE JAMENDO</label>
+          <input class="field" id="net-jamendo-key" placeholder="client_id gratuito" autocomplete="off" spellcheck="false">
+          <button class="btn" id="net-key-save" type="button">SALVAR</button>
+          <button class="btn" id="net-key-help" type="button" title="Criar uma chave gratuita em devportal.jamendo.com">?</button>
+        </div>
+      </div>
+    </section>
+    </div>
+    <div class="col" id="col-2"></div>
+    <!-- Pilha de amplificador da skin Amplificador (montada em player.js; os cones pulsam com a música) -->
+    <aside class="amp-cab" aria-hidden="true"></aside>
+  </div>
+
+  <div class="skin-menu" id="skin-menu" role="menu" aria-label="Skins" hidden>
+    <div class="skin-head">SKIN</div>
+    <div class="skin-list"></div>
+    <div class="skin-actions">
+      <button class="btn" id="skin-load" type="button" title="Carregar uma skin de um arquivo .json">CARREGAR…</button>
+      <button class="btn" id="skin-export" type="button" title="Salvar a skin atual como .json (modelo para criar a sua)">EXPORTAR</button>
+      <button class="btn" id="skin-remove" type="button" title="Remover esta skin do app" hidden>REMOVER</button>
+    </div>
+  </div>
+  <input type="file" id="skin-input" accept=".json,application/json" hidden>
+
+  <div class="drop-overlay" id="drop-overlay">Solte para adicionar à playlist</div>
+
+  <input type="file" id="file-input" accept="audio/*,.mp3,.ogg,.opus,.flac,.wav,.m4a,.aac,.lrc" multiple hidden>
+  <input type="file" id="dir-input" webkitdirectory multiple hidden>
+  <script src="player.js"></script>
+  <script src="search.js"></script>
+  <script src="lyrics.js"></script>
+  <script src="tags.js"></script>
+  <script src="cover.js"></script>
+  <script src="layout.js"></script>
+</body>
+</html>

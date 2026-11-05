@@ -1,0 +1,45 @@
+{
+  "name": "retroamp",
+  "version": "1.0.0",
+  "description": "Player de MP3 estilo anos 90",
+  "main": "main.js",
+  "author": "miqui",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --linux AppImage"
+  },
+  "devDependencies": {
+    "electron": "^45.1.0",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "br.ia.genera.retroamp",
+    "productName": "RetroAmp",
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "style.css",
+      "player.js",
+      "fonts/**",
+      "build/icon.png",
+      "library.js",
+      "search.js",
+      "lyrics.js",
+      "layout.js",
+      "tags.js",
+      "cover.js",
+      "skins.js"
+    ],
+    "linux": {
+      "target": "AppImage",
+      "icon": "build/icon.png",
+      "category": "AudioVideo;Audio;Player",
+      "syncDesktopName": true
+    },
+    "artifactName": "${productName}-${version}-${arch}.${ext}"
+  },
+  "desktopName": "retroamp.desktop"
+}
