@@ -401,6 +401,10 @@ input[type="range"]::-moz-range-thumb {
 
 /* ---------- Playlist ---------- */
 .pl-body { display: flex; flex-direction: column; gap: 4px; position: relative; }
+.pl-lists, .pl-name-form { display: flex; gap: 2px; align-items: stretch; }
+.pl-lists[hidden], .pl-name-form[hidden] { display: none; }
+#pl-select, .pl-name-form .field { flex: 1; min-width: 0; width: 0; }
+#pl-send { max-width: 92px; }
 .pl-search {
   font-family: var(--font-ui);
   font-size: 10px;
@@ -440,14 +444,18 @@ input[type="range"]::-moz-range-thumb {
 .pl-list li.current { color: var(--hilite); text-shadow: 0 0 4px color-mix(in srgb, var(--hilite) 40%, transparent); }
 .pl-list li.selected { background: var(--sel-bg); }
 .pl-list li.error { color: var(--error); text-decoration: line-through; }
+.pl-list li.missing { color: var(--lcd-dim); font-style: italic; }
 .pl-list li.dragging { opacity: 0.4; }
 .pl-list li.drop-before { box-shadow: inset 0 2px 0 var(--accent); }
 .pl-list li.drop-after { box-shadow: inset 0 -2px 0 var(--accent); }
 
+/* Altura zero logo antes da lista: acompanha o topo dela, seja qual for a altura do que vem acima */
 .pl-empty {
-  position: absolute;
-  left: 0; right: 0;
-  top: 40px;
+  position: relative;
+  z-index: 1;
+  height: 0;
+  margin-bottom: -4px; /* desconta o gap do flex, para a lista não mudar de lugar */
+  top: 24px;
   text-align: center;
   color: var(--lcd-dim);
   line-height: 1.6;

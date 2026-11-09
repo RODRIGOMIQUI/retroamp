@@ -92,9 +92,22 @@
     <section class="win" id="pl-win">
       <header class="titlebar"><span class="grip"></span><span class="title">PLAYLIST</span><span class="grip"></span></header>
       <div class="pl-body">
+        <div class="pl-lists" id="pl-lists">
+          <select id="pl-select" class="btn" title="Trocar de playlist" aria-label="Playlist"></select>
+          <button class="btn" id="pl-new" type="button" title="Criar uma playlist vazia">NOVA</button>
+          <button class="btn" id="pl-rename" type="button" title="Renomear esta playlist">NOME</button>
+          <button class="btn" id="pl-delete" type="button" title="Apagar esta playlist">APAGAR</button>
+          <button class="btn" id="pl-import" type="button" title="Abrir um arquivo .m3u / .m3u8 como playlist nova">IMPORTAR</button>
+          <button class="btn" id="pl-export" type="button" title="Salvar esta playlist como .m3u8">EXPORTAR</button>
+        </div>
+        <form class="pl-name-form" id="pl-name-form" hidden>
+          <input class="field" id="pl-name" maxlength="60" placeholder="Nome da playlist" aria-label="Nome da playlist" autocomplete="off" spellcheck="false">
+          <button class="btn" type="submit">OK</button>
+          <button class="btn" id="pl-name-cancel" type="button">CANCELAR</button>
+        </form>
         <input type="search" id="pl-search" class="pl-search" placeholder="Buscar na playlist…" autocomplete="off">
-        <ul id="pl-list" class="pl-list" tabindex="0"></ul>
         <div class="pl-empty" id="pl-empty">Arraste músicas ou pastas para cá<br>ou use <b>+ ARQ</b> / <b>+ PASTA</b></div>
+        <ul id="pl-list" class="pl-list" tabindex="0"></ul>
         <div class="pl-footer">
           <div class="pl-buttons">
             <button class="btn" id="pl-add" title="Adicionar arquivos">+ ARQ</button>
@@ -103,6 +116,7 @@
             <button class="btn" id="pl-sort" title="Ordenar por título">ORD</button>
             <button class="btn" id="pl-tag" title="Editar as tags das selecionadas (T)">TAG</button>
             <button class="btn" id="pl-clear" title="Limpar playlist">LIMPAR</button>
+            <select class="btn" id="pl-send" title="Copiar as selecionadas para outra playlist" aria-label="Copiar para outra playlist"></select>
           </div>
           <span class="pl-total" id="pl-total">0 faixas</span>
         </div>
@@ -248,7 +262,9 @@
 
   <input type="file" id="file-input" accept="audio/*,.mp3,.ogg,.opus,.flac,.wav,.m4a,.aac,.lrc" multiple hidden>
   <input type="file" id="dir-input" webkitdirectory multiple hidden>
+  <input type="file" id="pl-import-input" accept=".m3u,.m3u8" multiple hidden>
   <script src="player.js"></script>
+  <script src="playlists.js"></script>
   <script src="search.js"></script>
   <script src="lyrics.js"></script>
   <script src="tags.js"></script>
