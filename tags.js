@@ -581,6 +581,7 @@
   // Grava no arquivo (desktop) ou baixa uma cópia (navegador / faixa sem caminho conhecido).
   // Devolve true quando gravou no disco.
   async function writeTrack(t, values) {
+    if (!await ensureTrackFile(t)) throw new Error('arquivo não carregado');
     const file = await buildTaggedFile(t.file, values);
     const desktopTags = window.desktop?.tags;
     if (desktopTags && t.path) {
@@ -613,10 +614,19 @@
     return sel.length ? sel : currentTrack ? [currentTrack] : [];
   }
 
-  $('#pl-tag').addEventListener('click', () => {
+  // Faixa de playlist salva ainda sem arquivo: as tags precisam ser lidas antes de abrir o editor,
+  // senão os campos vazios apagariam o que está gravado no MP3.
+  async function loadedTracks(tracks) {
+    const ok = await Promise.all(tracks.map(ensureTrackFile));
+    return tracks.filter((_, i) => ok[i]);
+  }
+
+  $('#pl-tag').addEventListener('click', async () => {
     const tracks = tracksToEdit();
     if (!tracks.length) { flashMessage('SELECIONE UMA FAIXA', 1400); return; }
-    open(tracks);
+    const ready = await loadedTracks(tracks);
+    if (ready.length) open(ready);
+    else flashMessage('FALTA O ARQUIVO: USE + ARQ OU + PASTA', 2500);
   });
   $('#tag-close').addEventListener('click', close);
   $('#tag-from-name').addEventListener('click', fillFromName);
@@ -643,9 +653,10 @@
   form.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
 
   // Com o editor aberto e nada alterado, ele acompanha a seleção da playlist
-  list.addEventListener('click', () => {
+  list.addEventListener('click', async () => {
     if (win.hidden || dirty) return;
-    const tracks = tracksToEdit();
+    const tracks = await loadedTracks(tracksToEdit());
+    if (win.hidden || dirty) return;
     if (tracks.length && /\.mp3$/i.test(tracks[0].file.name)) open(tracks, false);
   });
 })();

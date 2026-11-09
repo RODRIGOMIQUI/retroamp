@@ -20,6 +20,7 @@ const EQ_PRESETS = {
   'Ao vivo':  [-3, 0, 2, 3, 3, 3, 2, 1, 1, 1],
 };
 const AUDIO_EXT = /\.(mp3|ogg|oga|opus|wav|flac|m4a|aac|webm)$/i;
+const M3U_EXT = /\.m3u8?$/i;
 const baseName = (name) => name.replace(/\.[^.]+$/, '').toLowerCase();
 
 /* ---------- Configurações persistentes ---------- */
@@ -294,6 +295,56 @@ const trackTitle = (file, info) => (info.title
   ? (info.artist ? `${info.artist} - ${info.title}` : info.title)
   : file.name.replace(/\.[^.]+$/, ''));
 
+// Arquivos abertos nesta sessão, para religar faixas salvas (o M3U não traz o tamanho: "nome|0")
+const knownFiles = new Map();
+
+// Faixa restaurada de uma playlist salva começa sem url: só com nome, tamanho e caminho.
+// No desktop o arquivo é lido do disco na hora de usar; no navegador precisa ser adicionado de novo.
+const canLoad = (t) => !!t.url || !!(t.path && window.desktop?.readAudio);
+
+function attachFile(t, file) {
+  t.file = file;
+  t.url = URL.createObjectURL(file);
+  t.error = false;
+}
+
+async function readTrackInfo(t) {
+  const [info, duration] = await Promise.all([readFileInfo(t.file), probeDuration(t.url)]);
+  t.title = trackTitle(t.file, info);
+  t.tags = info;
+  Object.assign(t, { khz: info.khz ?? null, mono: !!info.mono });
+  if (Number.isFinite(duration)) t.duration = duration;
+}
+
+async function readTracksInfo(tracks) {
+  for (const t of tracks) {
+    await readTrackInfo(t);
+    if (!playlist.includes(t)) continue;
+    updateRow(t);
+    updateFooter();
+    if (t === currentTrack) updateNowPlaying();
+  }
+}
+
+// Garante que a faixa tenha o arquivo em memória. Resolve false se não der para carregar.
+function ensureTrackFile(t) {
+  if (t.url) return Promise.resolve(true);
+  if (!canLoad(t)) return Promise.resolve(false);
+  t.fileLoading ||= (async () => {
+    try {
+      attachFile(t, new File([await window.desktop.readAudio(t.path)], t.file.name));
+      await readTrackInfo(t);
+      return true;
+    } catch (err) {
+      console.warn('Falha ao abrir', t.path, err);
+      return false;
+    } finally {
+      t.fileLoading = null;
+    }
+  })();
+  return t.fileLoading;
+}
+
 async function addFiles(files) {
   // Letras .lrc com o mesmo nome do MP3 (ex.: "Banda - Música.lrc") viram a letra da faixa
   const lrcByName = new Map([...files].filter((f) => /\.lrc$/i.test(f.name)).map((f) => [baseName(f.name), f]));
@@ -303,25 +354,54 @@ async function addFiles(files) {
     if (lrc) { t.lrcFile = lrc; t.lyricsPromise = null; lrcByName.delete(baseName(t.file.name)); lrcAttached++; }
   }
 
-  const audioFiles = [...files].filter((f) => f.type.startsWith('audio/') || AUDIO_EXT.test(f.name));
+  const isPlaylistFile = (f) => M3U_EXT.test(f.name);
+  const audioFiles = [...files].filter((f) => !isPlaylistFile(f) && (f.type.startsWith('audio/') || AUDIO_EXT.test(f.name)));
+  for (const f of audioFiles) {
+    knownFiles.set(fileKey(f), f);
+    knownFiles.set(`${f.name}|0`, f);
+  }
   if (audioFiles.some((f) => f.webkitRelativePath)) {
     audioFiles.sort((a, b) => a.webkitRelativePath.localeCompare(b.webkitRelativePath, undefined, { numeric: true }));
   }
   if (!audioFiles.length) {
+    const m3us = [...files].filter(isPlaylistFile);
+    if (m3us.length) { m3us.forEach((f) => window.RetroPlaylists.importFile(f)); return; }
     flashMessage(lrcAttached ? `LETRA ADICIONADA (${lrcAttached})` : 'NENHUM ARQUIVO DE ÁUDIO');
     return;
+  }
+
+  // Faixas salvas à espera do arquivo voltam a tocar quando ele é adicionado de novo
+  const waiting = new Map(playlist.filter((t) => !canLoad(t)).map((t) => [fileKey(t.file), t]));
+  const relinked = [];
+  const incoming = audioFiles.filter((f) => {
+    const key = [fileKey(f), `${f.name}|0`].find((k) => waiting.has(k));
+    if (!key) return true;
+    const t = waiting.get(key);
+    waiting.delete(key);
+    attachFile(t, f);
+    relinked.push(t);
+    return false;
+  });
+  if (relinked.length) {
+    renderPlaylist();
+    updateNowPlaying();
+    readTracksInfo(relinked);
+    if (!incoming.length) {
+      flashMessage(`${relinked.length} FAIXA${relinked.length > 1 ? 'S' : ''} DE VOLTA`);
+      return;
+    }
   }
 
   // Ignora o que já está na playlist (ou repetido no mesmo lote). Nome + tamanho
   // identifica o arquivo tanto vindo do disco quanto de um download do NET.
   const seen = new Set(playlist.map((t) => fileKey(t.file)));
-  const newFiles = audioFiles.filter((f) => {
+  const newFiles = incoming.filter((f) => {
     const key = fileKey(f);
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
-  const skipped = audioFiles.length - newFiles.length;
+  const skipped = incoming.length - newFiles.length;
   if (!newFiles.length) {
     flashMessage(skipped > 1 ? 'JÁ ESTÃO NA PLAYLIST' : 'JÁ ESTÁ NA PLAYLIST');
     return;
@@ -348,17 +428,7 @@ async function addFiles(files) {
   flashMessage(`+${added.length} FAIXA${added.length > 1 ? 'S' : ''}`
     + (skipped ? ` · ${skipped} JÁ ESTAVA${skipped > 1 ? 'M' : ''}` : ''), skipped ? 2000 : 1200);
 
-  for (const t of added) {
-    const [info, duration] = await Promise.all([readFileInfo(t.file), probeDuration(t.url)]);
-    t.title = trackTitle(t.file, info);
-    t.tags = info;
-    Object.assign(t, { khz: info.khz ?? null, mono: !!info.mono });
-    if (Number.isFinite(duration)) t.duration = duration;
-    if (!playlist.includes(t)) continue;
-    updateRow(t);
-    updateFooter();
-    if (t === currentTrack) updateNowPlaying();
-  }
+  await readTracksInfo(added);
 }
 
 // URL da capa embutida na faixa (criada sob demanda e liberada junto com a faixa)
@@ -380,6 +450,8 @@ function makeRow(t) {
   li.classList.toggle('current', t === currentTrack);
   li.classList.toggle('selected', selected.has(t.id));
   li.classList.toggle('error', t.error);
+  li.classList.toggle('missing', !canLoad(t));
+  if (!canLoad(t)) li.title = 'Arquivo não carregado: adicione de novo com + ARQ ou + PASTA';
   const title = document.createElement('span');
   title.className = 'pl-title';
   title.textContent = `${playlist.indexOf(t) + 1}. ${t.title}`;
@@ -396,6 +468,7 @@ function renderPlaylist() {
   list.replaceChildren(...visible.map(makeRow));
   $('#pl-empty').hidden = playlist.length > 0;
   updateFooter();
+  document.dispatchEvent(new CustomEvent('playlistchange'));
 }
 
 function rowOf(t) {
@@ -405,6 +478,7 @@ function rowOf(t) {
 function updateRow(t) {
   const li = rowOf(t);
   if (li) li.replaceWith(makeRow(t));
+  document.dispatchEvent(new CustomEvent('playlistchange'));
 }
 
 function refreshRowClasses() {
@@ -460,7 +534,23 @@ function startPlayback() {
   });
 }
 
+let loadSeq = 0; // descarta o resultado de uma leitura do disco que ficou para trás
+
 function loadTrack(t, autoplay = true, pushHistory = true) {
+  const seq = ++loadSeq;
+  if (!t.url) {
+    if (pushHistory && currentTrack && currentTrack !== t) history.push(currentTrack);
+    currentTrack = t;
+    refreshRowClasses();
+    updateNowPlaying();
+    if (!canLoad(t)) { flashMessage('FALTA O ARQUIVO: USE + ARQ OU + PASTA', 2500); return; }
+    ensureTrackFile(t).then((ok) => {
+      if (seq !== loadSeq) return;
+      if (ok) { updateRow(t); loadTrack(t, autoplay, false); }
+      else trackFailed(t, 'ARQUIVO NÃO ENCONTRADO');
+    });
+    return;
+  }
   if (pushHistory && currentTrack && currentTrack !== t) history.push(currentTrack);
   currentTrack = t;
   loadedTrack = t;
@@ -510,41 +600,49 @@ function stop() {
   updateState();
 }
 
-function next(fromEnded = false) {
-  if (!playlist.length) return;
+function trackFailed(t, message) {
+  t.error = true;
+  updateRow(t);
+  flashMessage(message, 2000);
+  consecutiveErrors++;
+  if (consecutiveErrors < playlist.length) setTimeout(() => next(true, true), 600);
+  else { consecutiveErrors = 0; unload(); }
+}
+
+function next(fromEnded = false, skipping = false) {
+  const pool = playlist.filter(canLoad);
+  if (!pool.length) return;
   const autoplay = fromEnded || (!audio.paused && !stopped);
-  if (fromEnded && settings.repeat === 'one') {
+  if (fromEnded && !skipping && settings.repeat === 'one') {
     audio.currentTime = 0;
     startPlayback();
     return;
   }
   let t;
-  if (settings.shuffle && playlist.length > 1) {
-    do t = playlist[Math.floor(Math.random() * playlist.length)];
+  if (settings.shuffle && pool.length > 1) {
+    do t = pool[Math.floor(Math.random() * pool.length)];
     while (t === currentTrack);
   } else {
-    const i = playlist.indexOf(currentTrack) + 1;
-    if (i >= playlist.length) {
+    t = playlist.slice(playlist.indexOf(currentTrack) + 1).find(canLoad);
+    if (!t) {
       if (fromEnded && settings.repeat === 'off') { stop(); return; }
-      t = playlist[0];
-    } else {
-      t = playlist[i];
+      t = pool[0];
     }
   }
   loadTrack(t, autoplay);
 }
 
 function prev() {
-  if (!playlist.length) return;
+  const pool = playlist.filter(canLoad);
+  if (!pool.length) return;
   if (!stopped && audio.currentTime > 3) { audio.currentTime = 0; return; }
   const autoplay = !audio.paused && !stopped;
   if (settings.shuffle) {
     while (history.length && !playlist.includes(history.at(-1))) history.pop();
     if (history.length) { loadTrack(history.pop(), autoplay, false); return; }
   }
-  let i = playlist.indexOf(currentTrack) - 1;
-  if (i < 0) i = settings.repeat === 'all' ? playlist.length - 1 : 0;
-  loadTrack(playlist[i], autoplay);
+  const before = playlist.slice(0, Math.max(0, playlist.indexOf(currentTrack))).findLast(canLoad);
+  loadTrack(before || (settings.repeat === 'all' ? pool.at(-1) : pool[0]), autoplay);
 }
 
 function seekBy(seconds) {
@@ -569,7 +667,7 @@ function updateNowPlaying() {
   if (t) {
     const idx = playlist.indexOf(t);
     marqueeText = `${idx >= 0 ? idx + 1 + '. ' : ''}${t.title} (${fmtTime(t.duration)})`;
-    $('#kbps').textContent = Number.isFinite(t.duration) && t.duration > 0
+    $('#kbps').textContent = Number.isFinite(t.duration) && t.duration > 0 && t.file.size > 0
       ? Math.round((t.file.size * 8) / t.duration / 1000) : '---';
     $('#khz').textContent = t.khz ? Math.round(t.khz) : '--';
     $('#mono').classList.toggle('on', !!t.khz && t.mono);
@@ -1023,13 +1121,7 @@ audio.addEventListener('loadedmetadata', () => {
   updateState();
 });
 audio.addEventListener('error', () => {
-  if (!loadedTrack) return;
-  loadedTrack.error = true;
-  updateRow(loadedTrack);
-  flashMessage('ERRO: FORMATO NÃO SUPORTADO', 2000);
-  consecutiveErrors++;
-  if (consecutiveErrors < playlist.length) setTimeout(() => next(true), 600);
-  else { consecutiveErrors = 0; unload(); }
+  if (loadedTrack) trackFailed(loadedTrack, 'ERRO: FORMATO NÃO SUPORTADO');
 });
 
 /* ---------- Ligações da interface ---------- */

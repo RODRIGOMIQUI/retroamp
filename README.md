@@ -30,11 +30,22 @@ Depois abra http://localhost:5173 e arraste músicas (ou pastas) para a janela.
 - Display LCD com tempo (clique alterna decorrido/restante), título rolante, kbps, kHz, mono/estéreo
 - Visualizador: espectro com picos, osciloscópio ou desligado (clique para alternar)
 - Equalizador de 10 bandas + pré-amplificador, presets, curva ao vivo (duplo clique zera uma banda)
-- Playlist com busca, reordenação por arrastar, seleção múltipla (Ctrl/Shift), ordenar, remover
+- Várias playlists salvas, com busca, reordenação por arrastar, seleção múltipla (Ctrl/Shift), ordenar, remover e importação/exportação M3U
 - Lê tags ID3v1/ID3v2 (artista - título)
 - Shuffle, repeat (playlist / faixa), volume e balanço
 - Teclas de mídia do sistema (Media Session) e configurações salvas no navegador
 - Skins: dez prontas e suporte a skins próprias em arquivo `.json`
+
+## Playlists
+
+A janela **PL** guarda várias playlists com nome, que continuam lá quando você fecha o player.
+
+- O menu no topo troca de playlist. Se uma música estiver tocando, a nova playlist já começa a tocar, na faixa em que você parou.
+- **NOVA** cria uma playlist vazia, **NOME** renomeia e **APAGAR** apaga (os arquivos de música continuam no disco).
+- **COPIAR…** copia as faixas selecionadas para outra playlist, ou para uma nova.
+- **IMPORTAR** abre um `.m3u`/`.m3u8` como playlist nova (arrastar o arquivo para a janela também funciona) e **EXPORTAR** salva a playlist atual em `.m3u8`. Endereços da internet dentro do M3U são ignorados.
+
+No app desktop as faixas são lidas do disco quando você as usa; se um arquivo mudou de lugar, a faixa fica marcada em vermelho. O navegador não pode abrir arquivos sozinho, então depois de recarregar as faixas ficam em itálico até você adicionar os arquivos de novo (**+ ARQ** / **+ PASTA**): elas são reconhecidas pelo nome e voltam para o lugar delas.
 
 ## Organizar as seções
 

@@ -97,6 +97,16 @@ ipcMain.handle('tags:write', async (_e, file, data) => {
   }
 });
 
+// Abre uma faixa de playlist salva. Só arquivos de áudio comuns, nunca outro tipo de arquivo.
+const PLAYABLE = /\.(mp3|ogg|oga|opus|wav|flac|m4a|aac|webm)$/i;
+const MAX_AUDIO_BYTES = 1024 * 1024 * 1024;
+ipcMain.handle('audio:read', async (_e, file) => {
+  if (typeof file !== 'string' || !path.isAbsolute(file) || !PLAYABLE.test(file)) throw new Error('arquivo inválido');
+  const stat = await fs.promises.stat(file);
+  if (!stat.isFile() || stat.size > MAX_AUDIO_BYTES) throw new Error('arquivo inválido');
+  return fs.promises.readFile(file);
+});
+
 app.whenReady().then(() => {
   registerLibraryIpc();
   createWindow();

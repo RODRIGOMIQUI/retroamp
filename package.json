@@ -23,6 +23,7 @@
       "index.html",
       "style.css",
       "player.js",
+      "playlists.js",
       "fonts/**",
       "build/icon.png",
       "library.js",

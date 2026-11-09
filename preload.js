@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('desktop', {
   close: () => ipcRenderer.send('window:close'),
   setSize: (width, height) => ipcRenderer.send('window:set-size', width, height),
   pathFor: (file) => webUtils.getPathForFile(file),
+  readAudio: (filePath) => ipcRenderer.invoke('audio:read', filePath),
 
   tags: {
     write: (filePath, data) => ipcRenderer.invoke('tags:write', filePath, data),
