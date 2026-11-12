@@ -1177,7 +1177,10 @@ if ('mediaSession' in navigator) {
 
 audio.addEventListener('play', () => { stopped = false; updateState(); });
 audio.addEventListener('pause', updateState);
-audio.addEventListener('playing', () => { consecutiveErrors = 0; });
+audio.addEventListener('playing', () => {
+  consecutiveErrors = 0;
+  if (loadedTrack) loadedTrack.rereadTried = false;
+});
 audio.addEventListener('ended', () => next(true));
 audio.addEventListener('loadedmetadata', () => {
   if (loadedTrack && !Number.isFinite(loadedTrack.duration) && Number.isFinite(audio.duration)) {
@@ -1189,7 +1192,18 @@ audio.addEventListener('loadedmetadata', () => {
   updateState();
 });
 audio.addEventListener('error', () => {
-  if (loadedTrack) trackFailed(loadedTrack, 'ERRO: FORMATO NÃO SUPORTADO');
+  const t = loadedTrack;
+  if (!t) return;
+  // O MP3 mudou no disco depois de aberto (tags gravadas aqui ou em outro programa) e o Chromium
+  // não lê mais o arquivo original. No desktop, lê de novo do disco uma vez antes de desistir.
+  if (t.path && window.desktop?.readAudio && !t.rereadTried) {
+    t.rereadTried = true;
+    URL.revokeObjectURL(t.url);
+    t.url = null;
+    loadTrack(t, !stopped, false);
+    return;
+  }
+  trackFailed(t, 'ERRO: FORMATO NÃO SUPORTADO');
 });
 
 /* ---------- Ligações da interface ---------- */

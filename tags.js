@@ -595,9 +595,32 @@
     return !!(desktopTags && t.path);
   }
 
-  // A faixa passa a usar o arquivo novo; o áudio em memória é o mesmo, então a reprodução continua
+  // A faixa passa a usar o arquivo novo, que está em memória. O File antigo aponta para o disco e,
+  // depois que o MP3 foi regravado, o Chromium se recusa a lê-lo: a url antiga não toca mais.
   async function refreshTrack(t, file) {
+    const old = t.file;
+    const oldUrl = t.url;
     t.file = file;
+    t.url = URL.createObjectURL(file);
+    t.error = false;
+    for (const key of [fileKey(old), `${old.name}|0`]) if (knownFiles.get(key) === old) knownFiles.delete(key);
+    knownFiles.set(fileKey(file), file);
+    knownFiles.set(`${file.name}|0`, file);
+    if (oldUrl) {
+      if (t === loadedTrack) {
+        // Troca a fonte do que está tocando sem perder o ponto da música
+        const pos = audio.currentTime;
+        const wasPlaying = !audio.paused && !stopped;
+        audio.addEventListener('loadedmetadata', () => {
+          audio.currentTime = pos;
+          if (wasPlaying) startPlayback();
+          URL.revokeObjectURL(oldUrl);
+        }, { once: true });
+        audio.src = t.url;
+      } else {
+        URL.revokeObjectURL(oldUrl);
+      }
+    }
     const info = await readFileInfo(file);
     t.tags = info;
     releaseCover(t);
