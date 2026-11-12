@@ -53,31 +53,61 @@
 html, body { margin: 0; }
 
 body {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background: radial-gradient(ellipse at top, var(--page-glow) 0%, var(--page-bg) 70%);
   color: var(--btn-text);
   font-family: var(--font-ui);
   font-size: 11px;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
-  padding: 32px 16px;
+  align-items: stretch;
+  padding: 0;
   user-select: none;
 }
 
+/* Tela toda: três colunas da altura da janela. As laterais têm largura fixa e a
+   coluna "wide" (a da biblioteca, marcada em layout.js) fica com o resto. */
 #app {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: center;
-  align-items: stretch; /* colunas sempre com a mesma altura */
+  align-items: stretch;
   width: 100%;
-  max-width: 920px;
+  height: 100vh;
 }
-.col { display: flex; flex-direction: column; flex: 0 1 460px; min-width: 0; }
+.col {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 400px;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto; /* se as seções não couberem na altura, a coluna rola */
+  scrollbar-width: thin;
+  scrollbar-color: var(--btn-hi) var(--edge-shadow);
+}
+#col-1 { flex-basis: 440px; }
+.col.wide { flex: 1 1 0; min-width: 420px; }
 .col.empty { display: none; }
-/* Seções com a classe "fill" (definida em layout.js) absorvem a sobra de altura da coluna */
+.col + .col { border-left: 1px solid var(--edge-dark); }
+/* Seções com a classe "fill" (definida em layout.js) dividem a sobra de altura da coluna */
 .col > .win { flex: none; }
-.col > .win.fill { flex: 1 0 auto; }
+.col > .win.fill { flex: 1 1 0; min-height: 220px; }
+.col > .win.fill > :not(.titlebar) { flex: 1 1 0; min-height: 0; }
+.col > .win.fill .pl-list, .col > .win.fill .ly-lines, .col > .win.fill .net-results { flex: 1 1 0; min-height: 120px; }
+
+/* Tela estreita (navegador): uma coluna embaixo da outra, rolando a página */
+@media (max-width: 980px) {
+  body { display: block; height: auto; overflow: visible; }
+  #app { flex-direction: column; height: auto; }
+  .col, #col-1, .col.wide { flex: none; width: 100%; min-width: 0; overflow: visible; }
+  .col + .col { border-left: none; }
+  .col > .win.fill { flex: none; min-height: 0; }
+  .col > .win.fill > :not(.titlebar) { flex: 1 0 auto; }
+  .col > .win.fill .pl-list, .col > .win.fill .ly-lines, .col > .win.fill .net-results { flex: 1 0 232px; }
+  #lib-win .lib-main { flex: none; height: 60vh; }
+}
 
 /* ---------- Janelas ---------- */
 .win {
@@ -128,10 +158,7 @@ body {
 #win-close:hover { color: var(--error); }
 
 /* ---------- App desktop (Electron) ---------- */
-html.desktop body { padding: 0; min-height: 0; background: var(--chrome-lo); overflow: hidden; }
-html.desktop body { overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--btn-hi) var(--edge-shadow); }
-html.desktop #app { max-width: none; width: max-content; flex-wrap: nowrap; }
-html.desktop .col { flex: none; width: 460px; }
+html.desktop body { background: var(--chrome-lo); }
 html.desktop #main-win .titlebar { -webkit-app-region: drag; }
 html.desktop .titlebar button { -webkit-app-region: no-drag; }
 html.desktop .win-buttons { display: flex; }
@@ -1150,3 +1177,77 @@ body.dragging-files .drop-overlay { display: grid; }
   .eq-band.preamp { margin-right: 4px; padding-right: 4px; }
   .eq-band label { font-size: 7px; }
 }
+
+/* ---------- Biblioteca ---------- */
+.lib-body { display: flex; flex-direction: column; gap: 4px; position: relative; }
+.lib-top { display: flex; gap: 2px; align-items: stretch; }
+.lib-search { flex: 1; min-width: 0; }
+.lib-main {
+  flex: 1 1 0;
+  min-height: 260px;
+  display: flex;
+  gap: 4px;
+}
+.lib-groups, .lib-list {
+  list-style: none;
+  margin: 0;
+  padding: 2px 0;
+  overflow-y: auto;
+  background: var(--lcd-bg);
+  border: 1px solid var(--edge-dark);
+  box-shadow: 1px 1px 0 var(--edge-light);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  outline: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--btn-hi) var(--lcd-deep);
+}
+.lib-groups { flex: 0 0 clamp(150px, 22%, 240px); }
+.lib-groups li, .lib-list li {
+  display: flex;
+  gap: 8px;
+  padding: 1px 6px;
+  color: var(--lcd-text);
+  cursor: default;
+  white-space: nowrap;
+}
+.lib-groups li:first-child { color: var(--lcd); border-bottom: 1px solid var(--lcd-dim); margin-bottom: 2px; }
+.lib-groups li.none { color: var(--lcd-dim); font-style: italic; }
+.lib-group-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.lib-group-count { flex: none; color: var(--lcd-dim); font-variant-numeric: tabular-nums; }
+.lib-groups li.selected, .lib-list li.selected { background: var(--sel-bg); }
+.lib-groups li.selected .lib-group-count { color: var(--lcd-text); }
+
+.lib-table { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.lib-list { flex: 1; min-height: 0; }
+.lib-head, .lib-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) 46px;
+  gap: 8px;
+}
+.lib-head { padding: 0 7px 2px; }
+.lib-head button {
+  font: bold 9px var(--font-ui);
+  letter-spacing: 1px;
+  color: var(--label);
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.lib-head button:last-child, .lib-c-dur { text-align: right; }
+.lib-head button:hover { color: var(--hilite); }
+.lib-head button.on { color: var(--accent); }
+.lib-head button.on::after { content: " " attr(data-dir); }
+.lib-list li > span { overflow: hidden; text-overflow: ellipsis; }
+.lib-c-artist, .lib-c-album { color: color-mix(in srgb, var(--lcd-text) 75%, var(--lcd-dim)); }
+.lib-c-dur { font-variant-numeric: tabular-nums; }
+.lib-list li.queued .lib-c-title { color: var(--lcd); }
+.lib-list li.queued .lib-c-title::before { content: "♪ "; }
+.lib-list li.missing, .lib-list li.missing span { color: var(--lcd-dim); font-style: italic; }
+.lib-empty { top: 40px; }
+.lib-footer { display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap; }
+body.dragging-library #pl-win .pl-list { border-color: var(--accent); box-shadow: 0 0 6px var(--accent); }

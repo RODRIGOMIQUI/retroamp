@@ -32,7 +32,7 @@ function loadSettings() {
     volume: 80, balance: 0,
     eqOn: true, preamp: 0, bands: Array(10).fill(0), preset: 'Flat',
     shuffle: false, repeat: 'off',
-    showEq: true, showPl: true,
+    showEq: true, showPl: true, showLib: true,
     visMode: 'spectrum', timeMode: 'elapsed',
   };
   try {
@@ -283,6 +283,7 @@ let currentTrack = null; // faixa "da vez" (destacada)
 let loadedTrack = null;  // faixa carregada no <audio>
 let stopped = true;
 let consecutiveErrors = 0;
+let reachedEnd = false; // a playlist acabou (repeat desligado): música nova da biblioteca já começa a tocar
 let selected = new Set();
 let lastClickedId = null;
 const history = [];
@@ -360,6 +361,8 @@ async function addFiles(files) {
     knownFiles.set(fileKey(f), f);
     knownFiles.set(`${f.name}|0`, f);
   }
+  // Tudo o que entra na playlist também fica na biblioteca
+  window.RetroLibrary?.importFiles(audioFiles, true);
   if (audioFiles.some((f) => f.webkitRelativePath)) {
     audioFiles.sort((a, b) => a.webkitRelativePath.localeCompare(b.webkitRelativePath, undefined, { numeric: true }));
   }
@@ -524,6 +527,70 @@ function sortPlaylist() {
   updateNowPlaying();
 }
 
+/* ---------- Da biblioteca para a playlist ---------- */
+
+const trackKey = (t) => t.path || fileKey(t.file);
+
+// entries: { name, size, path, title, duration } (itens da biblioteca).
+// mode: 'end' (fim da playlist), 'next' (logo depois da atual) ou 'play' (tocar agora).
+// Música que já está na playlist não é duplicada: em 'next'/'play' ela muda de lugar.
+function queueEntries(entries, mode = 'end') {
+  if (!entries.length) return [];
+  const have = new Map(playlist.map((t) => [trackKey(t), t]));
+  const fresh = [];
+  const chosen = [];
+  for (const e of entries) {
+    const key = e.path || `${e.name}|${e.size}`;
+    let t = have.get(key) || have.get(`${e.name}|${e.size}`);
+    if (!t) {
+      t = {
+        id: nextId++,
+        file: { name: e.name, size: e.size || 0 },
+        path: e.path || '',
+        url: '',
+        title: e.title || e.name.replace(/\.[^.]+$/, ''),
+        duration: e.duration ?? NaN,
+        khz: null,
+        mono: false,
+        error: false,
+        tags: null,
+        lrcFile: null,
+      };
+      const f = knownFiles.get(`${e.name}|${e.size}`) || knownFiles.get(`${e.name}|0`);
+      if (f) attachFile(t, f);
+      have.set(key, t);
+      fresh.push(t);
+    }
+    if (!chosen.includes(t)) chosen.push(t);
+  }
+
+  if (mode === 'end') {
+    playlist.push(...fresh);
+  } else {
+    const moving = new Set(chosen.filter((t) => t !== currentTrack || mode === 'play'));
+    playlist = playlist.filter((t) => !moving.has(t));
+    const at = currentTrack && playlist.includes(currentTrack) ? playlist.indexOf(currentTrack) + 1 : 0;
+    playlist.splice(at, 0, ...moving);
+  }
+  if (!currentTrack || !playlist.includes(currentTrack)) currentTrack = playlist[0] || null;
+  renderPlaylist();
+  updateNowPlaying();
+  readTracksInfo(fresh.filter((t) => t.url));
+
+  const same = chosen.length - fresh.length;
+  if (mode === 'play') {
+    chosen[0].error = false;
+    loadTrack(chosen[0]);
+  } else {
+    flashMessage(`+${fresh.length} NA PLAYLIST${mode === 'next' ? ' (PRÓXIMA)' : ''}`
+      + (same && mode === 'end' ? ` · ${same} JÁ ESTAVA${same > 1 ? 'M' : ''}` : ''), same ? 2000 : 1200);
+    // Player parado sem nada (ou no fim da playlist): o que entrou já começa a tocar
+    const first = mode === 'end' ? fresh[0] : chosen[0];
+    if (first && (!loadedTrack || reachedEnd)) loadTrack(first);
+  }
+  return chosen;
+}
+
 /* ---------- Transporte ---------- */
 
 function startPlayback() {
@@ -538,6 +605,7 @@ let loadSeq = 0; // descarta o resultado de uma leitura do disco que ficou para 
 
 function loadTrack(t, autoplay = true, pushHistory = true) {
   const seq = ++loadSeq;
+  reachedEnd = false;
   if (!t.url) {
     if (pushHistory && currentTrack && currentTrack !== t) history.push(currentTrack);
     currentTrack = t;
@@ -625,7 +693,7 @@ function next(fromEnded = false, skipping = false) {
   } else {
     t = playlist.slice(playlist.indexOf(currentTrack) + 1).find(canLoad);
     if (!t) {
-      if (fromEnded && settings.repeat === 'off') { stop(); return; }
+      if (fromEnded && settings.repeat === 'off') { stop(); reachedEnd = true; return; }
       t = pool[0];
     }
   }
@@ -1221,12 +1289,15 @@ function bindUI() {
   const syncWindows = () => {
     $('#eq-win').hidden = !settings.showEq;
     $('#pl-win').hidden = !settings.showPl;
+    $('#lib-win').hidden = !settings.showLib;
+    $('#btn-lib').classList.toggle('on', settings.showLib);
     $('#btn-eq').classList.toggle('on', settings.showEq);
     $('#btn-pl').classList.toggle('on', settings.showPl);
     if (settings.showEq) drawEqCurve();
   };
   $('#btn-eq').addEventListener('click', () => { settings.showEq = !settings.showEq; syncWindows(); saveSettings(); });
   $('#btn-pl').addEventListener('click', () => { settings.showPl = !settings.showPl; syncWindows(); saveSettings(); });
+  $('#btn-lib').addEventListener('click', () => { settings.showLib = !settings.showLib; syncWindows(); saveSettings(); });
   syncWindows();
 
   // Playlist: seleção, duplo clique, reordenação
@@ -1323,7 +1394,9 @@ function bindUI() {
     e.preventDefault();
     dragDepth = 0;
     document.body.classList.remove('dragging-files');
+    const toLibrary = !!e.target.closest?.('#lib-win');
     const files = await filesFromDataTransfer(e.dataTransfer);
+    if (toLibrary) { window.RetroLibrary.importFiles(files); return; }
     const wasEmpty = !loadedTrack;
     const firstNew = playlist.length;
     addFiles(files);
@@ -1335,6 +1408,9 @@ function bindUI() {
     const tag = e.target.tagName;
     if (tag === 'INPUT' && e.target.type !== 'range') return;
     if (tag === 'SELECT') return;
+    if (e.key === 'F11' && window.desktop) { e.preventDefault(); window.desktop.toggleFullScreen(); return; }
+    // Enter, Del e Ctrl+A na biblioteca são tratados em collection.js
+    if (e.target.closest?.('#lib-win') && ['Enter', 'Delete', 'a', 'A'].includes(e.key)) return;
     if (e.ctrlKey || e.metaKey || e.altKey) {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a' && tag !== 'INPUT') {
         e.preventDefault();
@@ -1403,12 +1479,11 @@ function bindDesktop() {
   if (!window.desktop) return;
   document.documentElement.classList.add('desktop');
   $('#win-min').addEventListener('click', () => window.desktop.minimize());
+  $('#win-max').addEventListener('click', () => window.desktop.toggleMaximize());
   $('#win-close').addEventListener('click', () => window.desktop.close());
-  // A janela acompanha o tamanho do conteúdo (seções ocultas, recolhidas, 1 ou 2 colunas)
-  new ResizeObserver(() => {
-    const { width, height } = $('#app').getBoundingClientRect();
-    window.desktop.setSize(width, height);
-  }).observe($('#app'));
+  $('#main-win .titlebar').addEventListener('dblclick', (e) => {
+    if (!e.target.closest('button')) window.desktop.toggleMaximize();
+  });
 }
 
 /* ---------- Inicialização ---------- */

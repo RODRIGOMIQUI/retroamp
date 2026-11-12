@@ -17,10 +17,11 @@
     <section class="win" id="main-win">
       <header class="titlebar">
         <span class="grip"></span><span class="title">RETROAMP</span><span class="grip"></span>
-        <button class="win-btn layout-btn" id="btn-layout" title="Alternar entre 1 e 2 colunas (arraste as seções pelo título para reorganizar)" aria-label="Colunas"><svg viewBox="0 0 8 8"><path d="M0 0h3.5v8H0zM4.5 0H8v8H4.5z"/></svg></button>
+        <button class="win-btn layout-btn" id="btn-layout" title="Voltar ao layout padrão (arraste as seções pelo título para reorganizar)" aria-label="Layout padrão"><svg viewBox="0 0 8 8"><path d="M0 0h3.5v8H0zM4.5 0H8v8H4.5z"/></svg></button>
         <button class="win-btn skin-btn" id="btn-skin" title="Skins (K troca)" aria-label="Skins" aria-haspopup="menu"><svg viewBox="0 0 8 8"><path d="M4 0a4 4 0 100 8V7a3 3 0 010-6z"/><path d="M4 1.5a2.5 2.5 0 010 5z"/></svg></button>
         <span class="win-buttons">
           <button class="win-btn" id="win-min" title="Minimizar" aria-label="Minimizar"><svg viewBox="0 0 8 8"><path d="M1 6h6v1.5H1z"/></svg></button>
+          <button class="win-btn" id="win-max" title="Maximizar / restaurar (F11: tela cheia)" aria-label="Maximizar"><svg viewBox="0 0 8 8"><path d="M.5.5h7v7h-7zM2 2.5v3.5h4V2.5z"/></svg></button>
           <button class="win-btn" id="win-close" title="Fechar" aria-label="Fechar"><svg viewBox="0 0 8 8"><path d="M1.5.5L4 3 6.5.5l1 1L5 4l2.5 2.5-1 1L4 5 1.5 7.5l-1-1L3 4 .5 1.5z"/></svg></button>
         </span>
       </header>
@@ -46,6 +47,7 @@
               <label class="mini-slider" title="Balanço (duplo clique centraliza)"><span>BAL</span><input type="range" id="balance" class="nofill" min="-100" max="100" value="0"></label>
             </div>
             <div class="toggles-row">
+              <button class="btn toggle" id="btn-lib" title="Mostrar a biblioteca de músicas">LIB</button>
               <button class="btn toggle" id="btn-eq" title="Mostrar equalizador">EQ</button>
               <button class="btn toggle" id="btn-pl" title="Mostrar playlist">PL</button>
               <button class="btn toggle desktop-only" id="btn-net" title="Buscar e baixar música liberada">NET</button>
@@ -70,6 +72,46 @@
             <button class="btn toggle" id="btn-shuffle" title="Aleatório (S)">SHUFFLE</button>
             <button class="btn toggle" id="btn-repeat" title="Repetir (R)">REPEAT</button>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Biblioteca: todas as músicas conhecidas; delas saem as faixas da playlist (collection.js) -->
+    <section class="win" id="lib-win">
+      <header class="titlebar"><span class="grip"></span><span class="title">BIBLIOTECA</span><span class="grip"></span></header>
+      <div class="lib-body">
+        <div class="lib-top">
+          <input type="search" id="lib-search" class="pl-search lib-search" placeholder="Buscar na biblioteca (título, artista, álbum)…" autocomplete="off">
+          <select id="lib-group" class="btn" title="Agrupar a lista lateral por" aria-label="Agrupar por">
+            <option value="artist">ARTISTAS</option>
+            <option value="album">ÁLBUNS</option>
+            <option value="genre">GÊNEROS</option>
+          </select>
+          <button class="btn" id="lib-add" type="button" title="Adicionar arquivos à biblioteca">+ ARQ</button>
+          <button class="btn" id="lib-add-dir" type="button" title="Adicionar uma pasta inteira à biblioteca">+ PASTA</button>
+        </div>
+        <div class="lib-main">
+          <ul class="lib-groups" id="lib-groups" tabindex="0" aria-label="Filtro"></ul>
+          <div class="lib-table">
+            <div class="lib-head" id="lib-head">
+              <button type="button" data-sort="title">TÍTULO</button>
+              <button type="button" data-sort="artist">ARTISTA</button>
+              <button type="button" data-sort="album">ÁLBUM</button>
+              <button type="button" data-sort="duration">TEMPO</button>
+            </div>
+            <div class="pl-empty lib-empty" id="lib-empty">Biblioteca vazia<br>Arraste músicas ou pastas para cá<br>ou use <b>+ ARQ</b> / <b>+ PASTA</b></div>
+            <ul class="lib-list" id="lib-list" tabindex="0"></ul>
+          </div>
+        </div>
+        <div class="lib-footer">
+          <div class="pl-buttons">
+            <button class="btn" id="lib-play" type="button" title="Pôr as selecionadas na playlist e tocar agora (duplo clique / Enter)">▶ TOCAR</button>
+            <button class="btn" id="lib-next" type="button" title="Tocar as selecionadas logo depois da música atual">▶| PRÓXIMA</button>
+            <button class="btn" id="lib-queue" type="button" title="Pôr as selecionadas no fim da playlist (ou arraste para a playlist)">+ PLAYLIST</button>
+            <button class="btn" id="lib-queue-all" type="button" title="Pôr todas as músicas desta lista no fim da playlist">+ TODAS</button>
+            <button class="btn" id="lib-remove" type="button" title="Tirar as selecionadas da biblioteca (os arquivos continuam no disco)">REM</button>
+          </div>
+          <span class="pl-total" id="lib-total">0 músicas</span>
         </div>
       </div>
     </section>
@@ -243,6 +285,7 @@
     </section>
     </div>
     <div class="col" id="col-2"></div>
+    <div class="col" id="col-3"></div>
     <!-- Pilha de amplificador da skin Amplificador (montada em player.js; os cones pulsam com a música) -->
     <aside class="amp-cab" aria-hidden="true"></aside>
   </div>
@@ -262,6 +305,8 @@
 
   <input type="file" id="file-input" accept="audio/*,.mp3,.ogg,.opus,.flac,.wav,.m4a,.aac,.lrc" multiple hidden>
   <input type="file" id="dir-input" webkitdirectory multiple hidden>
+  <input type="file" id="lib-file-input" accept="audio/*,.mp3,.ogg,.opus,.flac,.wav,.m4a,.aac" multiple hidden>
+  <input type="file" id="lib-dir-input" webkitdirectory multiple hidden>
   <input type="file" id="pl-import-input" accept=".m3u,.m3u8" multiple hidden>
   <script src="player.js"></script>
   <script src="playlists.js"></script>
@@ -269,6 +314,7 @@
   <script src="lyrics.js"></script>
   <script src="tags.js"></script>
   <script src="cover.js"></script>
+  <script src="collection.js"></script>
   <script src="layout.js"></script>
 </body>
 </html>

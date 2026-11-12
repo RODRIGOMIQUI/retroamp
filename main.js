@@ -7,35 +7,39 @@ const { registerLibraryIpc } = require('./library');
 
 const statePath = () => path.join(app.getPath('userData'), 'window-state.json');
 
+// Por padrão a janela abre maximizada, ocupando a tela toda
 function loadWindowState() {
+  const { workArea } = screen.getPrimaryDisplay();
+  const fallback = { width: workArea.width, height: workArea.height, maximized: true };
   try {
-    const { x, y } = JSON.parse(fs.readFileSync(statePath(), 'utf8'));
+    const { x, y, width, height, maximized } = JSON.parse(fs.readFileSync(statePath(), 'utf8'));
+    if (!Number.isFinite(width) || !Number.isFinite(height)) return fallback;
     // Só reaproveita a posição se ela ainda cair dentro de algum monitor
     const visible = screen.getAllDisplays().some(({ workArea: a }) =>
       x >= a.x && y >= a.y && x < a.x + a.width && y < a.y + a.height);
-    return visible ? { x, y } : {};
+    return { ...(visible ? { x, y } : {}), width, height, maximized: maximized !== false };
   } catch {
-    return {};
+    return fallback;
   }
 }
 
 function saveWindowState(win) {
   try {
-    const { x, y } = win.getBounds();
-    fs.writeFileSync(statePath(), JSON.stringify({ x, y }));
+    const { x, y, width, height } = win.getNormalBounds();
+    fs.writeFileSync(statePath(), JSON.stringify({ x, y, width, height, maximized: win.isMaximized() || win.isFullScreen() }));
   } catch { /* sem permissão de escrita: ignora */ }
 }
 
 function createWindow() {
+  const { maximized, ...bounds } = loadWindowState();
   const win = new BrowserWindow({
-    ...loadWindowState(),
-    width: 460,
-    height: 600,
-    useContentSize: true,
+    ...bounds,
+    minWidth: 900,
+    minHeight: 560,
     frame: false,
-    resizable: false,
-    maximizable: false,
-    fullscreenable: false,
+    resizable: true,
+    maximizable: true,
+    fullscreenable: true,
     show: false,
     title: 'RetroAmp',
     backgroundColor: '#23252c',
@@ -50,7 +54,10 @@ function createWindow() {
 
   win.removeMenu();
   win.loadFile(path.join(__dirname, 'index.html'));
-  win.once('ready-to-show', () => win.show());
+  win.once('ready-to-show', () => {
+    if (maximized) win.maximize();
+    win.show();
+  });
   win.on('close', () => saveWindowState(win));
 
   // Links externos nunca abrem dentro do player
@@ -60,23 +67,16 @@ function createWindow() {
 
 ipcMain.on('window:minimize', (e) => BrowserWindow.fromWebContents(e.sender)?.minimize());
 ipcMain.on('window:close', (e) => BrowserWindow.fromWebContents(e.sender)?.close());
-ipcMain.on('window:set-size', (e, width, height) => {
+ipcMain.on('window:toggle-maximize', (e) => {
   const win = BrowserWindow.fromWebContents(e.sender);
-  if (!win || !Number.isFinite(width) || !Number.isFinite(height)) return;
-  // Nunca maior que a área útil da tela: o que passar disso vira rolagem dentro da janela
-  const { workArea } = screen.getDisplayMatching(win.getBounds());
-  const w = Math.min(Math.ceil(width), workArea.width);
-  const h = Math.min(Math.ceil(height), workArea.height);
-  // Janelas não redimensionáveis ignoram setContentSize em alguns gerenciadores de janela
-  win.setResizable(true);
-  win.setContentSize(w, h);
-  win.setResizable(false);
-
-  // Se cresceu para fora da tela, puxa de volta (sem efeito no Wayland, que não deixa posicionar)
-  const b = win.getBounds();
-  const x = Math.max(workArea.x, Math.min(b.x, workArea.x + workArea.width - b.width));
-  const y = Math.max(workArea.y, Math.min(b.y, workArea.y + workArea.height - b.height));
-  if (x !== b.x || y !== b.y) win.setPosition(x, y);
+  if (!win) return;
+  if (win.isFullScreen()) win.setFullScreen(false);
+  else if (win.isMaximized()) win.unmaximize();
+  else win.maximize();
+});
+ipcMain.on('window:toggle-fullscreen', (e) => {
+  const win = BrowserWindow.fromWebContents(e.sender);
+  if (win) win.setFullScreen(!win.isFullScreen());
 });
 
 // Grava o MP3 com as tags novas (montado em tags.js). Escreve num temporário e troca,
