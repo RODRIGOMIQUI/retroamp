@@ -1,24 +1,27 @@
 'use strict';
 
 /* =========================================================================
-   Organização das seções em até duas colunas.
+   Organização das seções em três colunas, ocupando a tela toda.
    - Arraste uma seção pela barra de título para mudar de lugar/coluna.
    - Duplo clique no título recolhe/expande a seção.
-   - Botão de colunas na janela principal alterna entre 1 e 2 colunas.
-   A janela principal fica sempre no topo da 1ª coluna.
+   - Botão de layout na janela principal volta ao arranjo padrão.
+   A janela principal fica sempre no topo da 1ª coluna; a coluna que tem a
+   biblioteca ocupa a largura que sobrar.
    Usa globais de player.js: $, settings, saveSettings.
    ========================================================================= */
 
 (() => {
-  const SECTION_IDS = ['eq-win', 'pl-win', 'ly-win', 'net-win', 'tag-win', 'cv-win'];
-  const DEFAULT_TWO_COLUMNS = [['eq-win', 'pl-win', 'tag-win'], ['cv-win', 'ly-win', 'net-win']];
-  // Quanto cada seção cresce quando a coluna dela é mais curta que a outra
-  const GROW_WEIGHT = { 'ly-win': 2, 'pl-win': 1, 'net-win': 1, 'cv-win': 1 };
-  const cols = [$('#col-1'), $('#col-2')];
+  const SECTION_IDS = ['lib-win', 'eq-win', 'pl-win', 'ly-win', 'net-win', 'tag-win', 'cv-win'];
+  const DEFAULT_LAYOUT = [['eq-win', 'cv-win', 'ly-win'], ['lib-win', 'net-win'], ['pl-win', 'tag-win']];
+  // Quanto cada seção cresce para preencher a altura da coluna
+  const GROW_WEIGHT = { 'lib-win': 3, 'ly-win': 2, 'pl-win': 2, 'net-win': 1, 'cv-win': 1 };
+  const cols = [$('#col-1'), $('#col-2'), $('#col-3')];
   const mainWin = $('#main-win');
   const sections = SECTION_IDS.map((id) => document.getElementById(id));
 
   settings.collapsed ||= {};
+  // Layout antigo (até 2 colunas, sem a biblioteca) não serve mais: começa no padrão
+  if (settings.layout && (settings.layout.length !== 3 || !settings.layout.flat().includes('lib-win'))) delete settings.layout;
 
   /* ---------- Aplicar / salvar o layout ---------- */
 
@@ -50,42 +53,19 @@
   const isVisible = (el) => el.classList.contains('win') && !el.hidden && getComputedStyle(el).display !== 'none';
   const isOpen = (el) => el !== mainWin && isVisible(el) && !el.classList.contains('collapsed');
   const winsOf = (col) => [...col.children].filter((el) => el.classList.contains('win'));
-  const PAIR = ['pl-win', 'net-win'];
-
   function setFill(el, grow) {
     el.classList.toggle('fill', grow > 0);
     el.style.flexGrow = grow > 0 ? String(grow) : '';
   }
 
-  // Playlist e Buscar música em colunas diferentes ficam com a mesma altura (topos e
-  // bases alinhados): as duas ganham uma altura fixa igual e as outras seções que
-  // crescem (a letra) compensam a diferença do que fica acima delas.
-  function alignPair() {
-    const [pl, net] = PAIR.map((id) => document.getElementById(id));
-    for (const el of [pl, net]) el.style.flex = '';
-    if (!isOpen(pl) || !isOpen(net) || pl.parentElement === net.parentElement) return false;
-
-    // Mede tudo no tamanho natural (sem esticar)
-    for (const col of cols) for (const el of winsOf(col)) setFill(el, 0);
-    const pairHeight = Math.max(pl.getBoundingClientRect().height, net.getBoundingClientRect().height);
-    const above = (el) => winsOf(el.parentElement).filter((w) => w !== el && isVisible(w))
-      .reduce((sum, w) => sum + w.getBoundingClientRect().height, 0);
-    const [a, b] = [above(pl), above(net)];
-    const shorter = a < b ? pl.parentElement : net.parentElement;
-    const growers = (col) => winsOf(col).filter((w) => isOpen(w) && !PAIR.includes(w.id) && GROW_WEIGHT[w.id]);
-    // Só dá para alinhar se a coluna mais baixa tiver algo para crescer (ex.: a letra)
-    if (Math.abs(a - b) > 1 && !growers(shorter).length) return false;
-
-    for (const el of [pl, net]) el.style.flex = `0 0 ${Math.ceil(pairHeight)}px`;
-    for (const col of cols) for (const el of growers(col)) setFill(el, GROW_WEIGHT[el.id]);
-    return true;
-  }
-
   function refreshColumns() {
-    // Coluna sem nenhuma seção visível some (e a janela encolhe)
+    // Coluna sem nenhuma seção visível some
     // (seções "desktop-only" ficam escondidas por CSS na versão web)
     for (const col of cols) col.classList.toggle('empty', !winsOf(col).some(isVisible));
-    if (alignPair()) return;
+    // A coluna da biblioteca fica com a largura que sobra; sem biblioteca aberta, a do meio
+    const lib = document.getElementById('lib-win');
+    const wide = isOpen(lib) ? lib.parentElement : cols.find((c) => c !== cols[0] && !c.classList.contains('empty')) || cols[0];
+    for (const col of cols) col.classList.toggle('wide', col === wide);
 
     // Quem preenche a sobra: letra, playlist e resultados da busca (a letra cresce mais).
     // Sem nenhuma delas aberta, a última seção aberta da coluna estica.
@@ -101,10 +81,9 @@
   new MutationObserver(refreshColumns).observe($('#app'), { subtree: true, attributes: true, attributeFilter: ['hidden'] });
 
   $('#btn-layout').addEventListener('click', () => {
-    const twoCols = currentLayout()[1].length > 0;
-    if (twoCols) applyLayout([[...currentLayout()[0], ...currentLayout()[1]], []]);
-    else applyLayout(DEFAULT_TWO_COLUMNS);
-    flashMessage(twoCols ? 'LAYOUT: 1 COLUNA' : 'LAYOUT: 2 COLUNAS');
+    applyLayout(DEFAULT_LAYOUT);
+    for (const el of sections) if (el.classList.contains('collapsed')) setCollapsed(el, false);
+    flashMessage('LAYOUT PADRÃO');
     save();
     window.dispatchEvent(new Event('resize'));
   });
@@ -134,7 +113,7 @@
   const marker = Object.assign(document.createElement('div'), { className: 'drop-marker' });
   const newColDrop = Object.assign(document.createElement('div'), {
     className: 'col-drop',
-    textContent: '⇢ Solte aqui para criar uma 2ª coluna',
+    textContent: '⇢ Solte aqui para usar a coluna vazia',
   });
   let dragging = null;
 
@@ -153,7 +132,7 @@
       requestAnimationFrame(() => {
         el.classList.add('dragging-section');
         document.body.classList.add('dragging-sections');
-        if (cols[1].classList.contains('empty')) cols[0].append(newColDrop);
+        if (cols.some((c) => c.classList.contains('empty'))) cols.filter((c) => !c.classList.contains('empty')).at(-1).append(newColDrop);
       });
     });
     bar.addEventListener('dragend', endDrag);
@@ -202,7 +181,7 @@
       return e.clientY < r.top + r.height / 2;
     });
     if (before) col.insertBefore(marker, before);
-    else if (col === cols[0] && newColDrop.isConnected) col.insertBefore(marker, newColDrop);
+    else if (newColDrop.parentElement === col) col.insertBefore(marker, newColDrop);
     else col.append(marker);
   });
 
@@ -212,7 +191,7 @@
     e.stopPropagation();
     const el = dragging;
     if (newColDrop.classList.contains('over')) {
-      cols[1].append(el);
+      cols.find((c) => c.classList.contains('empty')).append(el);
     } else if (marker.isConnected) {
       marker.replaceWith(el);
     }
@@ -226,7 +205,7 @@
     if (dragging && !e.relatedTarget) marker.remove();
   });
 
-  applyLayout(settings.layout || [SECTION_IDS, []]);
+  applyLayout(settings.layout || DEFAULT_LAYOUT);
   // As alturas mudam quando a fonte LCD carrega ou a janela muda de tamanho
   document.fonts?.ready.then(refreshColumns);
   window.addEventListener('resize', refreshColumns);

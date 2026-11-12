@@ -5,7 +5,8 @@ const { contextBridge, ipcRenderer, webUtils } = require('electron');
 contextBridge.exposeInMainWorld('desktop', {
   minimize: () => ipcRenderer.send('window:minimize'),
   close: () => ipcRenderer.send('window:close'),
-  setSize: (width, height) => ipcRenderer.send('window:set-size', width, height),
+  toggleMaximize: () => ipcRenderer.send('window:toggle-maximize'),
+  toggleFullScreen: () => ipcRenderer.send('window:toggle-fullscreen'),
   pathFor: (file) => webUtils.getPathForFile(file),
   readAudio: (filePath) => ipcRenderer.invoke('audio:read', filePath),
 

@@ -365,7 +365,13 @@
   document.addEventListener('trackchange', persistSoon);
   window.addEventListener('pagehide', persist);
 
-  window.RetroPlaylists = { importFile };
+  // Todas as faixas de todas as playlists (a biblioteca começa com elas)
+  const allEntries = () => {
+    syncActive();
+    return lists.flatMap((l) => l.tracks.map(toEntry));
+  };
+
+  window.RetroPlaylists = { importFile, allEntries };
 
   /* ---------- Inicialização ---------- */
 

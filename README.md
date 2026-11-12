@@ -4,7 +4,7 @@ Player de MP3 estilo anos 90, feito só com HTML, CSS e JavaScript (Web Audio AP
 
 ## Rodar
 
-App desktop (Electron, janela sem bordas):
+App desktop (Electron, janela sem bordas que abre maximizada, ocupando a tela toda):
 
 ```bash
 npm install
@@ -30,11 +30,22 @@ Depois abra http://localhost:5173 e arraste músicas (ou pastas) para a janela.
 - Display LCD com tempo (clique alterna decorrido/restante), título rolante, kbps, kHz, mono/estéreo
 - Visualizador: espectro com picos, osciloscópio ou desligado (clique para alternar)
 - Equalizador de 10 bandas + pré-amplificador, presets, curva ao vivo (duplo clique zera uma banda)
+- Biblioteca com todas as suas músicas (título, artista, álbum, duração), de onde elas vão para a playlist
 - Várias playlists salvas, com busca, reordenação por arrastar, seleção múltipla (Ctrl/Shift), ordenar, remover e importação/exportação M3U
 - Lê tags ID3v1/ID3v2 (artista - título)
 - Shuffle, repeat (playlist / faixa), volume e balanço
 - Teclas de mídia do sistema (Media Session) e configurações salvas no navegador
 - Skins: dez prontas e suporte a skins próprias em arquivo `.json`
+
+## Biblioteca
+
+A janela **BIBLIOTECA** (botão **LIB**) fica no centro da tela e guarda todas as músicas que você já adicionou, mesmo depois de fechar o player. As tags (título, artista, álbum, gênero, duração) são lidas em segundo plano.
+
+- **+ ARQ** / **+ PASTA** na biblioteca, ou arrastar arquivos e pastas para cima dela, adiciona só à biblioteca. Tudo o que entra na playlist (inclusive downloads do **NET**) também entra na biblioteca.
+- A lista da esquerda filtra por **ARTISTAS**, **ÁLBUNS** ou **GÊNEROS**; duplo clique num deles põe todas as músicas dele na playlist. Clique nos títulos das colunas para ordenar.
+- **Duplo clique** (ou **Enter**) numa música: entra na playlist e toca agora. **▶| PRÓXIMA** toca logo depois da atual, **+ PLAYLIST** (ou **Shift+Enter**) põe no fim e **+ TODAS** põe todas as da lista. Também dá para **arrastar** as músicas para a playlist, no ponto que quiser.
+- Se o player estiver parado sem nada (ou a playlist já tiver acabado), a música que entra já começa a tocar.
+- Músicas que já estão na playlist aparecem com **♪**. **REM** (ou **Del**) tira da biblioteca; os arquivos continuam no disco.
 
 ## Playlists
 
@@ -49,11 +60,14 @@ No app desktop as faixas são lidas do disco quando você as usa; se um arquivo 
 
 ## Organizar as seções
 
-- Os botões **EQ / PL / NET / LY / CV** mostram ou escondem cada seção.
-- **Arraste uma seção pela barra de título** para mudar a ordem ou levá-la para a outra coluna (a janela principal fica sempre no topo da 1ª).
+O player ocupa a tela toda em três colunas: player, equalizador e letra à esquerda, biblioteca no centro e playlist à direita.
+
+- Os botões **LIB / EQ / PL / NET / LY / CV** mostram ou escondem cada seção.
+- **Arraste uma seção pela barra de título** para mudar a ordem ou levá-la para outra coluna (a janela principal fica sempre no topo da 1ª). A coluna da biblioteca fica com a largura que sobra.
 - **Duplo clique no título** recolhe a seção, deixando só a barra.
-- O botão **▥** no título da janela principal alterna entre 1 e 2 colunas.
-- No app desktop a janela se ajusta sozinha ao conteúdo e nunca passa da altura da tela; se passar, aparece uma barra de rolagem.
+- O botão **▥** no título da janela principal volta ao layout padrão.
+- No app desktop, **□** (ou duplo clique no título da janela principal) maximiza/restaura e **F11** liga a tela cheia. Se as seções não couberem na altura, a coluna ganha uma barra de rolagem.
+- No navegador, em telas estreitas, as colunas ficam uma embaixo da outra.
 
 O layout fica salvo.
 

@@ -27,6 +27,7 @@
       "fonts/**",
       "build/icon.png",
       "library.js",
+      "collection.js",
       "search.js",
       "lyrics.js",
       "layout.js",
