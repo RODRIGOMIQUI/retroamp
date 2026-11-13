@@ -14,7 +14,8 @@
   const SECTION_IDS = ['lib-win', 'eq-win', 'pl-win', 'ly-win', 'net-win', 'tag-win', 'cv-win'];
   const DEFAULT_LAYOUT = [['eq-win', 'cv-win', 'ly-win'], ['lib-win', 'net-win'], ['pl-win', 'tag-win']];
   // Quanto cada seção cresce para preencher a altura da coluna
-  const GROW_WEIGHT = { 'lib-win': 3, 'ly-win': 2, 'pl-win': 2, 'net-win': 1, 'cv-win': 1 };
+  // A capa fica fora: ela tem a altura da largura (quadrada) e a sobra vai para as outras
+  const GROW_WEIGHT = { 'lib-win': 3, 'ly-win': 2, 'pl-win': 2, 'net-win': 1 };
   const cols = [$('#col-1'), $('#col-2'), $('#col-3')];
   const mainWin = $('#main-win');
   const sections = SECTION_IDS.map((id) => document.getElementById(id));
