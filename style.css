@@ -640,8 +640,11 @@ html:not(.desktop) .desktop-only { display: none !important; }
 /* ---------- Capa do disco ---------- */
 .cv-body { display: flex; flex-direction: column; gap: 4px; }
 .cv-frame {
-  /* O quadrado da capa ocupa o maior tamanho que couber (largura ou altura da seção) */
+  /* Quadrado da largura da coluna; se a seção esticar (sozinha na coluna), ocupa o
+     maior tamanho que couber na largura ou na altura */
   flex: 1 1 auto;
+  aspect-ratio: 1;
+  max-height: 75vh;
   min-height: 280px;
   container-type: size;
   display: grid;
@@ -651,7 +654,7 @@ html:not(.desktop) .desktop-only { display: none !important; }
   box-shadow: 1px 1px 0 var(--edge-light);
 }
 .cv-square {
-  width: calc(min(100cqw, 100cqh) - 16px);
+  width: calc(min(100cqw, 100cqh) - 10px);
   aspect-ratio: 1;
   display: grid;
   place-items: center;
