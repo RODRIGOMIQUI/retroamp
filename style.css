@@ -79,7 +79,7 @@ body {
 .col {
   display: flex;
   flex-direction: column;
-  flex: 0 0 400px;
+  flex: 0 0 420px; /* cabe a linha de botões do rodapé da playlist em todas as skins */
   min-width: 0;
   min-height: 0;
   overflow-x: hidden;
