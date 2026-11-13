@@ -133,6 +133,23 @@
       },
     },
     {
+      // Estilo GTA VI: noite na praia de Miami — roxo profundo, rosa-choque, laranja de pôr do sol
+      // e turquesa de oceano. style.css faz o céu em degradê, o sol com faixas e os títulos
+      // em itálico com degradê (html[data-skin="vice"]).
+      id: 'vice', name: 'Vice',
+      colors: {
+        'page-bg': '#12061f', 'page-glow': '#ff5e8a', 'chrome-hi': '#2c1048d0', 'chrome-lo': '#170828e0',
+        'edge-light': '#ff4fa3', 'edge-dark': '#07020d', 'edge-shadow': '#0f0419',
+        'grip-hi': '#ff9a3c', 'grip-lo': '#1a0a2c', 'btn-hi': '#45186b', 'btn-lo': '#240c3d',
+        'btn-bevel': '#c0408e', 'btn-bevel-dark': '#10051c', 'btn-text': '#ffe3f1', 'hilite': '#ffffff',
+        'label': '#f0a3c8', 'accent': '#ff4fa3', 'error': '#ff5a5a', 'off': '#5b3a74',
+        'led-on': '#2ef2d8', 'led-off': '#2a1240', 'thumb-hi': '#ffe0b8', 'thumb-lo': '#ff7a4a', 'track': '#0c0418',
+        'lcd-bg': '#08031a', 'lcd-deep': '#0f0526', 'lcd-line': '#3a1458', 'lcd-grid': '#1a0a34',
+        'lcd': '#2ef2d8', 'lcd-text': '#ffc9e4', 'lcd-past': '#9a5f8e', 'lcd-dim': '#7a4c86', 'sel-bg': '#b0237a',
+        'vis-low': '#7a2cff', 'vis-mid': '#ff4fa3', 'vis-high': '#ff8a3c', 'vis-top': '#ffd23c', 'vis-peak': '#2ef2d8',
+      },
+    },
+    {
       id: 'bege', name: 'Bege 95',
       colors: {
         'page-bg': '#8c8a7e', 'page-glow': '#b8b5a6', 'chrome-hi': '#e4dfcf', 'chrome-lo': '#c9c3b0',

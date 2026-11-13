@@ -1152,6 +1152,89 @@ html.desktop[data-skin="amp"] .amp-cab { -webkit-app-region: drag; } /* arrastar
 html.cabs-off .amp-cab { display: none !important; }
 html[data-skin="amp"] .skin-menu { border-radius: 5px; box-shadow: inset 0 0 0 2px #111, inset 0 0 0 3px var(--edge-light), 0 4px 12px rgba(0, 0, 0, 0.7); }
 
+/* ---------- Skin "Vice" (estilo GTA VI): céu de pôr do sol, sol listrado e neon rosa/turquesa ---------- */
+html[data-skin="vice"] {
+  --font-ui: "Futura", "Avenir Next", "Montserrat", "Trebuchet MS", "DejaVu Sans", sans-serif;
+  --vice-grad: linear-gradient(90deg, #ffd23c, #ff8a3c 30%, #ff4fa3 65%, #b44bff);
+}
+html[data-skin="vice"] body {
+  background:
+    /* sol listrado afundando no horizonte */
+    repeating-linear-gradient(180deg, transparent 0 9px, #12061f 9px 12px) 50% 100% / 640px 180px no-repeat,
+    radial-gradient(circle at 50% 100%, #ffd23c 0, #ff8a3c 140px, #ff4fa3 230px, transparent 320px) 50% 100% / 640px 320px no-repeat,
+    /* céu: roxo da noite descendo para rosa e laranja */
+    linear-gradient(180deg, #12061f 0%, #2a0c48 35%, #7a1f78 62%, #ff4f8a 85%, #ff8a3c 100%);
+}
+/* janelas de vidro fumê: o pôr do sol aparece por trás */
+html[data-skin="vice"] .win {
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  border: 1px solid #07020d;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--edge-light) 55%, transparent), 0 0 14px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+html[data-skin="vice"] .win + .win { border-top: 1px solid #07020d; }
+html[data-skin="vice"] .grip {
+  height: 2px;
+  opacity: 1;
+  border-radius: 2px;
+  background: var(--vice-grad);
+}
+html[data-skin="vice"] .titlebar { height: 20px; }
+html[data-skin="vice"] .titlebar .title {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 2px;
+  background: var(--vice-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(0 0 4px rgba(255, 79, 163, 0.55));
+}
+html[data-skin="vice"] .win-btn { border-radius: 50%; }
+html[data-skin="vice"] .btn {
+  border-radius: 4px;
+  border-color: #07020d;
+  background: linear-gradient(180deg, var(--btn-hi), var(--btn-lo));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--btn-bevel) 60%, transparent);
+  font-style: italic;
+  letter-spacing: 1px;
+}
+html[data-skin="vice"] .btn:hover { color: #fff; box-shadow: inset 0 0 0 1px var(--accent), 0 0 8px color-mix(in srgb, var(--accent) 50%, transparent); }
+html[data-skin="vice"] .btn:active { background: linear-gradient(180deg, var(--btn-lo), var(--btn-hi)); }
+html[data-skin="vice"] .toggle::before { border-radius: 50%; }
+html[data-skin="vice"] .display,
+html[data-skin="vice"] .pl-list,
+html[data-skin="vice"] .ly-lines,
+html[data-skin="vice"] .cv-frame,
+html[data-skin="vice"] .net-results,
+html[data-skin="vice"] #eq-curve,
+html[data-skin="vice"] .pl-total {
+  border: 1px solid var(--lcd-line);
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lcd) 15%, transparent), inset 0 0 20px color-mix(in srgb, #b44bff 18%, transparent);
+}
+/* brilho rosa de horizonte no pé do display */
+html[data-skin="vice"] .display {
+  background:
+    linear-gradient(180deg, transparent 55%, color-mix(in srgb, #ff4fa3 14%, transparent)),
+    var(--lcd-bg);
+}
+html[data-skin="vice"] .time { text-shadow: 0 0 6px color-mix(in srgb, var(--lcd) 60%, transparent), 2px 2px 0 color-mix(in srgb, #ff4fa3 55%, transparent); }
+html[data-skin="vice"] .eq-bands { border-radius: 4px; }
+html[data-skin="vice"] input[type="range"] { --fill: var(--accent); }
+html[data-skin="vice"] input[type="range"]::-webkit-slider-runnable-track { border-radius: 3px; }
+html[data-skin="vice"] input[type="range"]::-webkit-slider-thumb {
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #fff4d6, #ffd23c 40%, #ff4fa3);
+  border: 1px solid #07020d;
+  box-shadow: 0 0 6px #ff4fa3;
+}
+html[data-skin="vice"] .skin-menu { border-radius: 6px; box-shadow: 0 0 0 1px var(--accent), 0 0 18px color-mix(in srgb, var(--accent) 35%, transparent); }
+
 /* ---------- Drag & drop ---------- */
 .drop-overlay {
   position: fixed;
