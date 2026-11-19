@@ -81,7 +81,7 @@
       <header class="titlebar"><span class="grip"></span><span class="title">BIBLIOTECA</span><span class="grip"></span></header>
       <div class="lib-body">
         <div class="lib-top">
-          <input type="search" id="lib-search" class="pl-search lib-search" placeholder="Buscar na biblioteca (título, artista, álbum)…" autocomplete="off">
+          <input type="search" id="lib-search" class="pl-search lib-search" placeholder="Buscar na biblioteca (título, artista, álbum, ano)…" autocomplete="off">
           <select id="lib-group" class="btn" title="Agrupar a lista lateral por" aria-label="Agrupar por">
             <option value="artist">ARTISTAS</option>
             <option value="album">ÁLBUNS</option>
@@ -97,6 +97,8 @@
               <button type="button" data-sort="title">TÍTULO</button>
               <button type="button" data-sort="artist">ARTISTA</button>
               <button type="button" data-sort="album">ÁLBUM</button>
+              <button type="button" data-sort="year">ANO</button>
+              <button type="button" data-sort="plays" title="Quantas vezes a música tocou (pelo menos metade dela)">VEZES</button>
               <button type="button" data-sort="duration">TEMPO</button>
             </div>
             <div class="pl-empty lib-empty" id="lib-empty">Biblioteca vazia<br>Arraste músicas ou pastas para cá<br>ou use <b>+ ARQ</b> / <b>+ PASTA</b></div>

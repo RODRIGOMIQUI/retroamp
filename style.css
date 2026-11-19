@@ -1308,7 +1308,7 @@ body.dragging-files .drop-overlay { display: grid; }
 .lib-list { flex: 1; min-height: 0; }
 .lib-head, .lib-list li {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) 46px;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) 34px 40px 46px;
   gap: 8px;
 }
 .lib-head { padding: 0 7px 2px; }
@@ -1324,13 +1324,14 @@ body.dragging-files .drop-overlay { display: grid; }
   white-space: nowrap;
   overflow: hidden;
 }
-.lib-head button:last-child, .lib-c-dur { text-align: right; }
+.lib-head button:nth-last-child(-n+3), .lib-c-year, .lib-c-plays, .lib-c-dur { text-align: right; }
 .lib-head button:hover { color: var(--hilite); }
 .lib-head button.on { color: var(--accent); }
 .lib-head button.on::after { content: " " attr(data-dir); }
 .lib-list li > span { overflow: hidden; text-overflow: ellipsis; }
 .lib-c-artist, .lib-c-album { color: color-mix(in srgb, var(--lcd-text) 75%, var(--lcd-dim)); }
-.lib-c-dur { font-variant-numeric: tabular-nums; }
+.lib-c-year, .lib-c-plays, .lib-c-dur { font-variant-numeric: tabular-nums; }
+.lib-c-year { color: color-mix(in srgb, var(--lcd-text) 75%, var(--lcd-dim)); }
 .lib-list li.queued .lib-c-title { color: var(--lcd); }
 .lib-list li.queued .lib-c-title::before { content: "♪ "; }
 .lib-list li.missing, .lib-list li.missing span { color: var(--lcd-dim); font-style: italic; }

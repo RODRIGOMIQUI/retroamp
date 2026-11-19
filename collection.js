@@ -2,9 +2,10 @@
 
 /* =========================================================================
    Biblioteca de músicas: todas as músicas que o player conhece, com título,
-   artista, álbum e duração, salvas entre sessões. Daqui as músicas vão para a
-   playlist (duplo clique toca agora; botões põem no fim ou como próxima;
-   também dá para arrastar as linhas para a playlist).
+   artista, álbum, ano, duração e quantas vezes já tocou, salvas entre
+   sessões. Daqui as músicas vão para a playlist (duplo clique toca agora;
+   botões põem no fim ou como próxima; também dá para arrastar as linhas
+   para a playlist).
    Usa globais de player.js: $, settings, saveSettings, knownFiles, fileKey,
    readFileInfo, probeDuration, fmtTime, flashMessage, queueEntries, AUDIO_EXT,
    M3U_EXT, trackKey, playlist.
@@ -43,7 +44,7 @@
 
   /* ---------- Salvar e carregar ---------- */
 
-  const FIELDS = ['name', 'size', 'path', 'title', 'artist', 'album', 'genre', 'year', 'track', 'duration', 'scanned', 'added'];
+  const FIELDS = ['name', 'size', 'path', 'title', 'artist', 'album', 'genre', 'year', 'track', 'duration', 'plays', 'scanned', 'added'];
 
   function persist() {
     clearTimeout(saveTimer);
@@ -66,6 +67,7 @@
       if (!old.path && data.path) { byKey.delete(keyOf(old)); old.path = data.path; byKey.set(keyOf(old), old); }
       if (!old.size && data.size) old.size = data.size;
       if (!Number.isFinite(old.duration) && Number.isFinite(data.duration)) old.duration = data.duration;
+      if (data.plays > old.plays) old.plays = data.plays;
       return [old, false];
     }
     const e = {
@@ -80,6 +82,7 @@
       year: data.year || '',
       track: data.track || 0,
       duration: Number.isFinite(data.duration) ? data.duration : null,
+      plays: Number.isInteger(data.plays) && data.plays > 0 ? data.plays : 0,
       scanned: !!data.scanned,
       added: data.added || Date.now(),
     };
@@ -196,13 +199,45 @@
   document.addEventListener('playlistchange', () => { syncTimer ??= setTimeout(syncFromPlaylist, 600); });
   document.addEventListener('playlistchange', markQueued);
 
+  /* ---------- Contagem de reproduções ----------
+     Conta uma vez por execução quando a música tocou de fato metade da duração
+     (ou 4 minutos, se for longa). Pular para o fim com a barra não conta. */
+
+  const PLAY_CAP = 240;
+  let listened = 0;
+  let counted = false;
+  let lastPos = 0;
+
+  const resetListen = () => { listened = 0; counted = false; lastPos = audio.currentTime || 0; };
+  audio.addEventListener('loadstart', resetListen);
+  audio.addEventListener('ended', resetListen); // repetir a faixa conta de novo
+  audio.addEventListener('seeked', () => { lastPos = audio.currentTime; });
+  audio.addEventListener('timeupdate', () => {
+    const pos = audio.currentTime;
+    const step = pos - lastPos;
+    lastPos = pos;
+    if (counted || audio.paused || step <= 0 || step > 2) return;
+    listened += step;
+    const dur = audio.duration;
+    if (!Number.isFinite(dur) || dur <= 0 || listened < Math.min(dur / 2, PLAY_CAP)) return;
+    counted = true;
+    const t = loadedTrack;
+    const e = t && (byKey.get(trackKey(t)) || (t.file && byKey.get(fileKey(t.file))));
+    if (!e) return;
+    e.plays = (e.plays || 0) + 1;
+    persistSoon();
+    const cellEl = listEl.querySelector(`li[data-id="${e.id}"] .lib-c-plays`);
+    if (settings.libSort.key === 'plays') renderSoon();
+    else if (cellEl) cellEl.textContent = e.plays;
+  });
+
   /* ---------- Desenhar ---------- */
 
   const groupValue = (e) => e[settings.libGroup] || NONE;
   const NO_GROUP = { artist: '(sem artista)', album: '(sem álbum)', genre: '(sem gênero)' };
 
   function matches(e, q) {
-    return !q || `${e.title} ${e.artist} ${e.album} ${e.genre} ${e.name}`.toLowerCase().includes(q);
+    return !q || `${e.title} ${e.artist} ${e.album} ${e.genre} ${e.year} ${e.name}`.toLowerCase().includes(q);
   }
 
   function compare(a, b) {
@@ -210,6 +245,7 @@
     const text = (x, y) => (x || '￿').localeCompare(y || '￿', undefined, { numeric: true, sensitivity: 'base' });
     let r;
     if (key === 'duration') r = (a.duration ?? Infinity) - (b.duration ?? Infinity);
+    else if (key === 'plays') r = (a.plays || 0) - (b.plays || 0);
     else r = text(a[key], b[key]);
     // Desempate: artista, álbum, número da faixa, título
     return r * dir || text(a.artist, b.artist) || text(a.album, b.album)
@@ -261,6 +297,8 @@
       cell('lib-c-title', e.title),
       cell('lib-c-artist', e.artist),
       cell('lib-c-album', e.album),
+      cell('lib-c-year', e.year),
+      cell('lib-c-plays', e.plays || ''),
       cell('lib-c-dur', Number.isFinite(e.duration) ? fmtTime(e.duration) : ''),
     );
     return li;
@@ -397,7 +435,9 @@
     const b = ev.target.closest('button');
     if (!b) return;
     const s = settings.libSort;
-    settings.libSort = s.key === b.dataset.sort ? { key: s.key, dir: -s.dir } : { key: b.dataset.sort, dir: 1 };
+    // Vezes começa do mais tocado; as outras colunas, em ordem crescente
+    settings.libSort = s.key === b.dataset.sort ? { key: s.key, dir: -s.dir }
+      : { key: b.dataset.sort, dir: b.dataset.sort === 'plays' ? -1 : 1 };
     saveSettings();
     render();
   });
